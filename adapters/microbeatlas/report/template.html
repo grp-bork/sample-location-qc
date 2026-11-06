@@ -1,0 +1,696 @@
+<title>MicrobeAtlas Coordinate Audit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~68ch) for prose; figures and tables break out to a wider measure. Survey-sheet feel: coordinates in mono, ink on chart paper. */
+:root {
+  --paper: #f6f8f8;
+  --panel: #ffffff;
+  --ink: #14202a;
+  --ink-2: #4a5965;
+  --ink-3: #75838e;
+  --rule: #d9e0e4;
+  --land: #e3e8e6;
+  --land-edge: #c7d0cd;
+  --sea: #f2f6f8;
+  --accent: #1d5f8a;
+  --flag: #eb6834;
+  --fix: #2a78d6;
+  --good: #2f8a57;
+  --coastal: #8fb3c9;
+  --bad: #d24b3e;
+  --muted: #b4bec5;
+  --font-display: "Bricolage Grotesque", "IBM Plex Sans", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #10171d; --panel: #172129; --ink: #e8eef2; --ink-2: #aebbc5; --ink-3: #82919c;
+    --rule: #2a3742; --land: #24313a; --land-edge: #34434e; --sea: #131c23;
+    --accent: #7db8de; --flag: #e8774a; --fix: #4d95e8; --good: #4fb07a; --coastal: #5f88a3;
+    --bad: #e66a5e; --muted: #52616c;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #10171d; --panel: #172129; --ink: #e8eef2; --ink-2: #aebbc5; --ink-3: #82919c;
+  --rule: #2a3742; --land: #24313a; --land-edge: #34434e; --sea: #131c23;
+  --accent: #7db8de; --flag: #e8774a; --fix: #4d95e8; --good: #4fb07a; --coastal: #5f88a3;
+  --bad: #e66a5e; --muted: #52616c;
+}
+body { background: var(--paper); color: var(--ink); font: 15px/1.6 var(--font-body); }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 40px 80px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.prose { max-width: 68ch; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(30px, 5vw, 46px); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 24px; font-weight: 700; }
+h3 { font-size: 17px; font-weight: 500; }
+p { margin: 0; }
+a { color: var(--accent); text-underline-offset: 2px; }
+a:focus-visible, button:focus-visible, th:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mono, code { font-family: var(--font-mono); font-size: 0.92em; }
+code { background: var(--panel); border: 1px solid var(--rule); border-radius: 3px; padding: 0 4px; }
+.eyebrow { font: 500 12px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.num { font-variant-numeric: tabular-nums; }
+
+header.top { display: grid; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--rule); }
+header.top .lede { font-size: 17px; color: var(--ink-2); max-width: 64ch; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 20px; font: 13px var(--font-mono); color: var(--ink-3); }
+
+section { display: grid; gap: 16px; padding-block: 40px; border-bottom: 1px solid var(--rule); }
+section > .head { display: grid; gap: 8px; }
+.note { color: var(--ink-2); font-size: 14px; }
+.small { font-size: 13px; color: var(--ink-3); }
+
+/* funnel of record counts */
+.funnel { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.stage { display: grid; gap: 4px; padding: 14px 16px; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; }
+.stage .v { font: 700 28px/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
+.stage .l { font-size: 13px; color: var(--ink-2); }
+.stage.hot .v { color: var(--bad); }
+
+/* outcome bar */
+.outcome { display: grid; gap: 10px; }
+.obar { display: flex; height: 34px; gap: 2px; }
+.obar div { height: 100%; min-width: 3px; }
+.obar div:first-child { border-radius: 4px 0 0 4px; } .obar div:last-child { border-radius: 0 4px 4px 0; }
+.olegend { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 20px; }
+.olegend .item { display: grid; grid-template-columns: 12px 1fr; gap: 2px 10px; align-items: baseline; }
+.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; transform: translateY(1px); }
+.olegend .k { font-weight: 600; } .olegend .d { grid-column: 2; font-size: 13px; color: var(--ink-2); }
+
+/* flag table with inline bars */
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font: 500 12px var(--font-mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-3); white-space: nowrap; }
+td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
+th.sort { cursor: pointer; user-select: none; } th.sort[aria-sort]::after { content: " ↓"; }
+.barcell { width: 32%; min-width: 140px; }
+.hbar { height: 10px; background: var(--accent); border-radius: 0 3px 3px 0; }
+.flagname { font: 500 13px var(--font-mono); white-space: nowrap; }
+.pill { display: inline-block; font: 500 11.5px var(--font-mono); padding: 1px 7px; border-radius: 99px; border: 1px solid var(--rule); color: var(--ink-2); white-space: nowrap; }
+
+/* map */
+.mapbox { display: grid; gap: 10px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tabs button { font: 500 13px var(--font-mono); color: var(--ink-2); background: var(--panel); border: 1px solid var(--rule); border-radius: 99px; padding: 5px 12px; cursor: pointer; }
+.tabs button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.tabs button .c { color: inherit; opacity: 0.7; margin-left: 6px; }
+.canvaswrap { position: relative; background: var(--sea); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+canvas { display: block; width: 100%; }
+#map { cursor: grab; touch-action: none; }
+#map:active { cursor: grabbing; }
+.zoomctl { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; gap: 4px; }
+.zoomctl button { font: 500 14px/1 var(--font-mono); width: 28px; height: 28px; color: var(--ink-2); background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; cursor: pointer; padding: 0; }
+.zoomctl button:hover { color: var(--ink); border-color: var(--ink-3); }
+.zoomhint { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 13px; color: var(--paper); background: var(--ink); opacity: 0.85; padding: 6px 12px; border-radius: 6px; pointer-events: none; }
+.maplegend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); align-items: center; }
+.maplegend label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.ring { width: 10px; height: 10px; border-radius: 50%; display: inline-block; border: 2px solid var(--fix); box-sizing: border-box; }
+.tip { position: absolute; pointer-events: none; background: var(--panel); color: var(--ink); border: 1px solid var(--rule); border-radius: 6px; padding: 8px 10px; font-size: 13px; line-height: 1.45; max-width: 280px; box-shadow: 0 4px 14px rgb(0 0 0 / 0.12); z-index: 3; }
+.tip .t { font: 500 12.5px var(--font-mono); }
+.tip.pinned { pointer-events: auto; border-color: var(--ink-3); user-select: text; }
+.tip .hint { margin-top: 4px; font-size: 11.5px; color: var(--ink-3); }
+.tip .row { color: var(--ink-2); }
+.flagdesc { font-size: 14px; color: var(--ink-2); max-width: 75ch; min-height: 3em; }
+
+.stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; max-width: 760px; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px; align-items: start; }
+.fig { display: grid; gap: 10px; }
+.hist svg, .fig svg { width: 100%; height: auto; display: block; overflow: visible; }
+.axis text { fill: var(--ink-3); font: 11px var(--font-mono); }
+.axis line, .axis path { stroke: var(--rule); }
+.callout { display: grid; gap: 6px; padding: 14px 16px; border-left: 3px solid var(--accent); background: var(--panel); }
+ul.plain { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; }
+footer { padding-top: 28px; font-size: 13px; color: var(--ink-3); display: grid; gap: 6px; }
+@media (max-width: 520px) { .barcell { min-width: 90px; } th, td { padding: 6px 6px; } }
+</style>
+
+<div class="wrap">
+<header class="top">
+  <span class="eyebrow">MicrobeAtlas · sample metadata QA · 28 October 2026</span>
+  <h1>MicrobeAtlas Coordinate Audit</h1>
+  <p class="lede">Every sample with a latitude and longitude was checked against the place name in its own metadata, placed on land or sea, and given a distance to the coast. <strong class="num" id="lede-bad">—</strong> samples carry a coordinate that is impossible or contradicts their metadata; for about one in five of them the error is mechanical and the likely correct position can be computed.</p>
+  <div class="meta">
+    <span>Source: <span class="mono">samples.info</span> + parsed lat/lon</span>
+    <span>Checker: <a href="https://github.com/grp-bork/metalog-geocoding/">grp-bork/metalog-geocoding</a></span>
+  </div>
+</header>
+
+<section aria-labelledby="h-cov">
+  <div class="head"><h2 id="h-cov">What was checked</h2></div>
+  <div class="funnel">
+    <div class="stage"><span class="v" id="f-total">—</span><span class="l">sample records in <span class="mono">samples.info</span></span></div>
+    <div class="stage"><span class="v" id="f-coords">—</span><span class="l">with a parseable coordinate (<span id="f-ncoords">—</span> distinct points, <span id="f-studies">—</span> studies)</span></div>
+    <div class="stage"><span class="v" id="f-claim">—</span><span class="l">also state a country or sea (INSDC <span class="mono">geo_loc_name</span> and similar fields)</span></div>
+    <div class="stage hot"><span class="v" id="f-bad">—</span><span class="l">flagged as bogus, in <span id="f-badst">—</span> studies</span></div>
+  </div>
+  <div class="outcome">
+    <h3>Outcome for samples with coordinates</h3>
+    <div class="obar" id="obar" role="img" aria-label="Share of samples by outcome"></div>
+    <div class="olegend" id="olegend"></div>
+  </div>
+</section>
+
+<section aria-labelledby="h-types">
+  <div class="head">
+    <h2 id="h-types">Error types</h2>
+    <p class="note prose">A sample can carry several flags; counts overlap. The checker tolerates borders: a coordinate just across a border or a few km offshore is not a mismatch.</p>
+  </div>
+  <div class="tablewrap"><table id="flagtable">
+    <thead><tr><th>Flag</th><th>Meaning</th><th class="r">Samples</th><th class="r">Studies</th><th class="barcell"><span class="sr">Share</span></th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+</section>
+
+<section aria-labelledby="h-map">
+  <div class="head">
+    <h2 id="h-map">Where the flagged coordinates are</h2>
+    <p class="note prose">One map per error type. Each dot is a distinct coordinate, sized by number of samples. Hover for the study, the place name in the metadata and where the point really is; click a dot to keep its details open. Where a sign flip or lat/lon swap puts the point back in the claimed country, a line runs to that likely intended position. Zoom with Ctrl/⌘ + scroll, a pinch or the buttons; drag to pan.</p>
+  </div>
+  <div class="mapbox">
+    <div class="tabs" id="tabs" role="group" aria-label="Error type"></div>
+    <p class="flagdesc" id="flagdesc"></p>
+    <div class="canvaswrap" id="mapwrap"><canvas id="map" aria-label="World map of flagged coordinates"></canvas><div class="zoomctl"><button type="button" id="zin" aria-label="Zoom in">+</button><button type="button" id="zout" aria-label="Zoom out">−</button><button type="button" id="zreset" aria-label="Reset zoom">⟲</button></div><div class="zoomhint" id="zoomhint" hidden>Ctrl/⌘ + scroll or pinch to zoom</div><div class="tip" id="tip" hidden></div></div>
+    <div class="maplegend">
+      <span><span class="dot" style="background:var(--flag)"></span> recorded coordinate</span>
+      <label><input type="checkbox" id="showfix" checked> <span class="ring"></span> likely intended position</label>
+      <span class="small" id="mapcount"></span>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="h-fix">
+  <div class="head">
+    <h2 id="h-fix">Likely fixes</h2>
+    <p class="note prose">For each flagged coordinate the audit tried the usual spreadsheet slips (swapped latitude and longitude, dropped minus signs) and kept the first one that puts the point within 25 km of the claimed country or sea, and inside the claimed state when one is named. For a land-based sample at sea the corrected point must also be on land. A slip is only proposed when the recorded point contradicts the metadata. Rows of an autofill run get the coordinate the drag started from, when that coordinate itself passes every check. <strong class="num" id="fix-n">—</strong> flagged samples get a likely intended position this way, including <span id="fix-tas">—</span>. A correction is only listed when text backs it: the sample's own stated country or sea (a swap or sign fix must land there to be chosen at all; an autofill start must carry the same claim and pass), or a place named in the sample's location detail or the study description (table "Backed by named places"). <span id="basis-text">—</span> No position is guessed from country or region centres. These are candidates for curation, not automatic corrections.</p>
+  </div>
+  <div class="stack">
+    <div class="fig"><h3>Diagnosis</h3><div class="tablewrap"><table id="diagtable"><thead><tr><th>Likely slip</th><th class="r">Samples</th><th class="barcell"></th></tr></thead><tbody></tbody></table></div></div>
+    <div class="fig"><h3>Mechanical corrections</h3>
+      <div class="tablewrap"><table id="sgtable"><thead><tr><th>Source</th><th class="r">Samples</th><th class="r">Typical uncertainty</th></tr></thead><tbody></tbody></table></div>
+      <p class="small">The uncertainty is the rounding of the recorded coordinate. Samples without a mechanical correction need the study's publication or the submitters.</p>
+    </div>
+    <div class="fig"><h3>Backed by named places</h3>
+      <div class="tablewrap"><table id="supporttable"><thead><tr><th>Places named in the metadata</th><th class="r">Swap / sign</th><th class="r">Autofill</th></tr></thead><tbody></tbody></table></div>
+      <p class="small" id="support-note">—</p>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="h-case">
+  <div class="head">
+    <h2 id="h-case">Case: a spreadsheet drag</h2>
+    <p class="note prose" id="case-text">—</p>
+  </div>
+  <div class="canvaswrap"><canvas id="casemap" aria-label="Map of the autofill run in study ERP114733"></canvas><div class="tip" id="casetip" hidden></div></div>
+</section>
+
+<section aria-labelledby="h-studies">
+  <div class="head">
+    <h2 id="h-studies">Studies with the most flagged samples</h2>
+    <p class="note prose">Top 40 by flagged samples. Click a column header to sort. "Claim" is the most common place name in the study's metadata; "Found" is where most of its flagged coordinates actually are.</p>
+  </div>
+  <div class="tablewrap"><table id="studytable">
+    <thead><tr>
+      <th data-k="0">Study</th><th class="r sort" data-k="1">Samples</th><th class="r sort" data-k="2" aria-sort="descending">Flagged</th><th class="r sort" data-k="9">%</th>
+      <th>Main flag</th><th>Slip</th><th>Claim</th><th>Found</th><th>Sample type</th>
+    </tr></thead><tbody></tbody>
+  </table></div>
+</section>
+
+<section aria-labelledby="h-hot">
+  <div class="head">
+    <h2 id="h-hot">One coordinate, many countries</h2>
+    <p class="note prose">Coordinates shared by samples that claim five or more different countries or seas. These are placeholders or a study's default location copied to every row, and point to whole batches that need a look.</p>
+  </div>
+  <div class="tablewrap"><table id="hottable">
+    <thead><tr><th>Coordinate</th><th>Is in</th><th class="r">Claims</th><th class="r">Studies</th><th class="r">Samples</th><th class="r">Flagged</th><th>Most common claims</th></tr></thead><tbody></tbody>
+  </table></div>
+</section>
+
+<section aria-labelledby="h-coast">
+  <div class="head">
+    <h2 id="h-coast">Distance to the coast</h2>
+    <p class="note prose">Signed distance to the nearest GSHHG shoreline: negative on land, positive at sea. Share of each sample type per distance band; sample type comes from the scientific name and environment fields.</p>
+  </div>
+  <div class="hist" id="hist"></div>
+  <div class="callout">
+    <span class="eyebrow">Not yet flagged</span>
+    <p id="inland-text">—</p>
+  </div>
+</section>
+
+<section aria-labelledby="h-method">
+  <div class="head"><h2 id="h-method">Method and caveats</h2></div>
+  <div class="two">
+    <div class="prose" style="display:grid;gap:10px">
+      <h3>How</h3>
+      <ul class="plain">
+        <li>Place name: the first filled field of <span class="mono">geo_loc_name</span>, <span class="mono">geographic location (country and/or sea)</span> and eight similar fields; the part before the first colon is the claim.</li>
+        <li id="m-remap">—</li>
+        <li>Each distinct (coordinate, claim) pair was graded by <a href="https://github.com/grp-bork/metalog-geocoding/">metalog-geocoding</a>: Natural Earth 1:10m countries and admin-1, IHO World Seas v3, Longhurst provinces, GSHHG full-resolution shorelines. The instance used here runs internally and is not publicly reachable; the code and data setup are in the repository.</li>
+        <li>Region check: when the claim names a state or province after the colon (<span class="mono">USA:CA:Davis</span>), it must lie within 25 km of the coordinate. Where Natural Earth splits a region into provinces (Italy, France, Spain, the UK), the name matches all of them.</li>
+        <li>Autofill: within a study, five or more coordinates in a row that step by the same amount in latitude and longitude.</li>
+      </ul>
+    </div>
+    <div class="prose" style="display:grid;gap:10px">
+      <h3>Caveats</h3>
+      <ul class="plain">
+        <li>A region mismatch can name the lab's city rather than the field site.</li>
+        <li id="m-len">—</li>
+        <li id="m-unpl">—</li>
+        <li id="m-place">—</li>
+        <li>An autofill run is missed when other coordinates of the same study sort between its members, and a one-axis run whose points all agree with their metadata is taken for a transect.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="h-next" style="border-bottom:0">
+  <div class="head"><h2 id="h-next">Suggested next steps</h2></div>
+  <ul class="plain prose">
+    <li>Hide or mark flagged coordinates in the MicrobeAtlas map views, starting with <span class="mono">out_of_range</span>, <span class="mono">null_island</span> and <span class="mono">country_mismatch</span>.</li>
+    <li>Review the diagnosed sign flips and swaps per study; most studies have one systematic slip affecting all their rows.</li>
+    <li>Treat the shared placeholder coordinates as missing.</li>
+    <li>Use the coast distance as a sample feature (e.g. coastal versus open ocean, inland versus shoreline soils).</li>
+  </ul>
+  <footer>
+    <span>Per-sample results (flags, diagnosis, coast distance, land/sea hierarchy) are available as TSV on request: <span class="mono">samples.info.geo.samples.tsv</span>, one row per sample; <span class="mono">samples.info.geo.coords.tsv</span>, one row per coordinate.</span>
+    <span>Natural Earth (public domain), IHO World Seas v3 (Flanders Marine Institute, CC-BY), Longhurst provinces (marineregions.org), GSHHG 2.3.7 (Wessel &amp; Smith 1996).</span>
+  </footer>
+</section>
+</div>
+
+<script id="data" type="application/json">/*DATA*/</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>
+(function () {
+const D = JSON.parse(document.getElementById("data").textContent);
+const fmt = d3.format(",");
+const pct = x => (x < 0.1 ? x.toFixed(2) : x < 10 ? x.toFixed(1) : Math.round(x)) + "%";
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const $ = id => document.getElementById(id);
+const setText = (id, t) => { const e = $(id); if (e) e.textContent = t; };
+
+const FLAGS = ["out_of_range", "null_island", "autofill", "country_mismatch", "sea_mismatch", "terrestrial_at_sea", "region_mismatch"];
+const FLAG_TEXT = {
+  out_of_range: "Latitude beyond ±90° or longitude beyond ±180°. Cannot exist.",
+  null_island: "Exactly 0, 0 in the Gulf of Guinea: the usual stand-in for a missing value.",
+  autofill: "A run of coordinates stepping by the same amount, diagonally or along one axis, as when a spreadsheet cell is dragged down. The first coordinate of the run is kept as real. A run along one axis only counts when some of its points contradict their metadata, since a cruise transect looks the same.",
+  country_mismatch: "The metadata names a country, but the coordinate is in another country, or at sea more than 370 km (200 nautical miles) from the named one.",
+  sea_mismatch: "The metadata names a sea or ocean, but the coordinate is on land or in a different sea more than 50 km from the named one.",
+  terrestrial_at_sea: "A gut, soil, skin, plant or similar land-based sample whose coordinate is more than 25 km out at sea, while its metadata names a country rather than a sea.",
+  region_mismatch: "Right country, but the state or province named after the colon is more than 25 km from the coordinate.",
+};
+const DIAG_TEXT = {
+  lon_sign: "Longitude sign dropped", lat_sign: "Latitude sign dropped", swapped: "Latitude and longitude swapped",
+  both_signs: "Both signs dropped", swapped_lon_sign: "Swapped, longitude sign dropped", swapped_lat_sign: "Swapped, latitude sign dropped",
+  autofill_step: "Autofill step", study_offset: "Whole-degree offset from the study's usual point",
+  lon_sign_to_land: "Longitude sign dropped (lands on land)", lat_sign_to_land: "Latitude sign dropped (lands on land)",
+  swapped_to_land: "Swapped (lands on land)",
+};
+
+// ---- headline -------------------------------------------------------------
+setText("lede-bad", fmt(D.n_bogus));
+setText("f-total", fmt(D.n_samples_total));
+setText("f-coords", fmt(D.n_with_coords));
+setText("f-ncoords", fmt(D.n_coords));
+setText("f-studies", fmt(D.n_studies));
+setText("f-claim", fmt(D.n_with_claim));
+setText("f-bad", fmt(D.n_bogus));
+setText("f-badst", fmt(D.n_bogus_studies));
+
+const OUT = [
+  ["consistent", "Consistent", "--good", "Coordinate lies in the country or sea the metadata names."],
+  ["coastal", "Coastal, country named", "--coastal", "Point is at sea near the named country (a sampling station offshore). Not an error."],
+  ["flagged", "Flagged", "--bad", "At least one of the error types below."],
+  ["unchecked", "No usable place name", "--muted", "No country or sea in the metadata, or one no gazetteer can place (e.g. \"GAZ\", \"rabbit caecum\")."],
+];
+const ob = $("obar"), ol = $("olegend");
+OUT.forEach(([k, label, col, desc]) => {
+  const n = D.status[k] || 0, share = 100 * n / D.n_with_coords;
+  const seg = document.createElement("div");
+  seg.style.flex = String(n); seg.style.background = `var(${col})`;
+  seg.title = `${label}: ${fmt(n)} (${pct(share)})`;
+  ob.appendChild(seg);
+  const it = document.createElement("div"); it.className = "item";
+  it.innerHTML = `<span class="sw"></span><span><span class="k"></span> <span class="num v"></span></span><span class="d"></span>`;
+  it.querySelector(".sw").style.background = `var(${col})`;
+  it.querySelector(".k").textContent = label;
+  it.querySelector(".v").textContent = `${fmt(n)} · ${pct(share)}`;
+  it.querySelector(".d").textContent = desc;
+  ol.appendChild(it);
+});
+
+// ---- flag table -------------------------------------------------------------
+const ftb = document.querySelector("#flagtable tbody");
+const fmax = d3.max(FLAGS, f => D.flags[f]);
+FLAGS.slice().sort((a, b) => D.flags[b] - D.flags[a]).forEach(f => {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td><span class="flagname"></span></td><td class="d"></td><td class="r"></td><td class="r"></td><td class="barcell"><div class="hbar"></div></td>`;
+  tr.querySelector(".flagname").textContent = f;
+  tr.querySelector(".d").textContent = FLAG_TEXT[f];
+  tr.children[2].textContent = fmt(D.flags[f]);
+  tr.children[3].textContent = fmt(D.flag_studies[f]);
+  tr.querySelector(".hbar").style.width = (100 * D.flags[f] / fmax) + "%";
+  ftb.appendChild(tr);
+});
+
+// ---- maps -----------------------------------------------------------------------
+const land = D.land;
+const pts = D.points.map(p => ({lat: p[0], lon: p[1], flag: FLAGS[p[2]], n: p[3], studies: p[4], study: p[5], claim: p[6], found: p[7], diag: p[8], dist: p[9], stype: p[10], fix: p[11], sg: p[12], ps: p[13], nsg: p[14],
+                               to: p[12] ? [+p[12][1], +p[12][2]] : null}));
+const SG_TEXT = {transform: "swap / sign fix", autofill: "where the autofill run started"};
+const SUPPORT_TEXT = {
+  supported: (pl, km) => `backs the fix: it lands ${km > 0 ? `${fmt(Math.round(km))} km from` : "in"} ${pl}`,
+  original_fits: () => "contradicts the fix: the recorded point is in a sampled place",
+  no_match: (pl, km) => "neither point is in a named place" + (pl ? ` (the fix is ${fmt(Math.round(km))} km from ${pl})` : ""),
+  unresolved: () => "named places could not be located",
+  no_places: () => "names no places"};
+let pinned = null;   // {tip, wrap} while a tooltip is pinned by a click
+function unpin() { if (!pinned) return; pinned.tip.classList.remove("pinned"); pinned.tip.hidden = true; pinned = null; }
+document.addEventListener("keydown", e => { if (e.key === "Escape") unpin(); });
+document.addEventListener("click", e => { if (pinned && !pinned.tip.contains(e.target) && !pinned.canvas.contains(e.target)) unpin(); });
+const MAP_FLAGS = FLAGS.filter(f => f !== "out_of_range");
+let current = "country_mismatch";
+const tabs = $("tabs");
+MAP_FLAGS.forEach(f => {
+  const b = document.createElement("button");
+  b.type = "button"; b.id = "tab-" + f; b.setAttribute("aria-pressed", f === current);
+  const nPts = D.primary[f] || 0;
+  b.innerHTML = `<span></span><span class="c num"></span>`;
+  b.firstChild.textContent = f; b.lastChild.textContent = fmt(nPts);
+  b.title = `${fmt(nPts)} samples whose main flag is ${f}`;
+  b.addEventListener("click", () => { unpin(); current = f; tabs.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); drawMap(); });
+  tabs.appendChild(b);
+});
+$("showfix").addEventListener("change", () => drawMap());
+
+function setupCanvas(cv, w, h) {
+  const r = window.devicePixelRatio || 1;
+  cv.width = Math.round(w * r); cv.height = Math.round(h * r); cv.style.height = h + "px";
+  const ctx = cv.getContext("2d"); ctx.setTransform(r, 0, 0, r, 0, 0); return ctx;
+}
+function drawLand(ctx, path) {
+  ctx.beginPath(); path(land); ctx.fillStyle = css("--land"); ctx.fill();
+  ctx.lineWidth = 0.6; ctx.strokeStyle = css("--land-edge"); ctx.stroke();
+}
+const rScale = n => Math.max(2.2, Math.min(11, 1.6 + Math.sqrt(n) * 0.9));
+let mapState = null, mapT = d3.zoomIdentity, mapW = 0, mapFrame = 0, hintTimer = 0;
+const mapZoom = d3.zoom().scaleExtent([1, 60]).clickDistance(4)
+  // plain wheel scrolls the page; Ctrl/⌘ + wheel (and trackpad pinch) zooms
+  .filter(ev => (ev.type !== "wheel" || ev.ctrlKey || ev.metaKey) && !ev.button)
+  .on("zoom", ev => {
+    mapT = ev.transform;
+    if (pinned && pinned.canvas === $("map")) unpin();
+    $("tip").hidden = true;
+    if (!mapFrame) mapFrame = requestAnimationFrame(() => { mapFrame = 0; drawMap(); });
+  });
+d3.select("#map").call(mapZoom);
+$("map").addEventListener("wheel", ev => {
+  if (ev.ctrlKey || ev.metaKey) return;
+  const hint = $("zoomhint"); hint.hidden = false;
+  clearTimeout(hintTimer); hintTimer = setTimeout(() => { hint.hidden = true; }, 1200);
+}, {passive: true});
+$("zin").addEventListener("click", () => d3.select("#map").transition().duration(300).call(mapZoom.scaleBy, 2));
+$("zout").addEventListener("click", () => d3.select("#map").transition().duration(300).call(mapZoom.scaleBy, 0.5));
+$("zreset").addEventListener("click", () => d3.select("#map").transition().duration(300).call(mapZoom.transform, d3.zoomIdentity));
+function drawMap() {
+  const wrap = $("mapwrap"), cv = $("map"), w = wrap.clientWidth, h = Math.round(w * 0.5);
+  if (w !== mapW) {   // new width: the old pixel transform no longer fits
+    mapW = w; mapT = d3.zoomIdentity; cv.__zoom = d3.zoomIdentity;
+    mapZoom.extent([[0, 0], [w, h]]).translateExtent([[0, 0], [w, h]]);
+  }
+  const ctx = setupCanvas(cv, w, h);
+  const proj = d3.geoEqualEarth().fitExtent([[6, 6], [w - 6, h - 6]], {type: "Sphere"});
+  const [tx, ty] = proj.translate();
+  proj.scale(proj.scale() * mapT.k).translate([tx * mapT.k + mapT.x, ty * mapT.k + mapT.y]);
+  const path = d3.geoPath(proj, ctx);
+  ctx.fillStyle = css("--sea"); ctx.fillRect(0, 0, w, h);
+  ctx.beginPath(); path(d3.geoGraticule10()); ctx.strokeStyle = css("--rule"); ctx.lineWidth = 0.4; ctx.stroke();
+  drawLand(ctx, path);
+  ctx.beginPath(); path({type: "Sphere"}); ctx.strokeStyle = css("--land-edge"); ctx.lineWidth = 0.8; ctx.stroke();
+  const sel = pts.filter(p => p.flag === current);
+  const showFix = $("showfix").checked;
+  const flagC = css("--flag"), fixC = css("--fix"), surf = css("--sea");
+  const xy = sel.map(p => proj([p.lon, p.lat]));
+  if (showFix) {
+    ctx.lineWidth = 0.8; ctx.strokeStyle = fixC; ctx.globalAlpha = 0.55;
+    sel.forEach((p, i) => { if (!p.to) return; const b = proj([p.to[1], p.to[0]]); ctx.beginPath(); ctx.moveTo(xy[i][0], xy[i][1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); });
+    ctx.globalAlpha = 1; ctx.lineWidth = 1.5;
+    sel.forEach(p => { if (!p.to) return; const b = proj([p.to[1], p.to[0]]); ctx.beginPath(); ctx.arc(b[0], b[1], 3, 0, 2 * Math.PI); ctx.stroke(); });
+  }
+  sel.forEach((p, i) => {
+    ctx.beginPath(); ctx.arc(xy[i][0], xy[i][1], rScale(p.n), 0, 2 * Math.PI);
+    ctx.fillStyle = flagC; ctx.globalAlpha = 0.78; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.lineWidth = 1; ctx.strokeStyle = surf; ctx.stroke();
+  });
+  const nFix = d3.sum(sel, p => p.nsg);
+  setText("flagdesc", FLAG_TEXT[current]);
+  setText("mapcount", `${fmt(sel.length)} coordinates · ${fmt(d3.sum(sel, p => p.n))} samples` + (nFix ? ` · ${fmt(nFix)} samples with a correction` : ""));
+  mapState = {sel, xy, delaunay: d3.Delaunay.from(xy)};
+}
+function placeTip(tip, wrap, x, y) {
+  tip.hidden = false;
+  const tw = tip.offsetWidth, th = tip.offsetHeight, W = wrap.clientWidth, H = wrap.clientHeight;
+  let left = x + 14, top = y + 14;
+  if (left + tw > W - 4) left = x - tw - 14;
+  if (top + th > H - 4) top = y - th - 14;
+  tip.style.left = Math.max(4, left) + "px"; tip.style.top = Math.max(4, top) + "px";
+}
+function tipRow(tip, label, value) {
+  if (!value && value !== 0) return;
+  const d = document.createElement("div"); d.className = "row";
+  const b = document.createElement("span"); b.textContent = label + ": ";
+  const v = document.createElement("span"); v.textContent = value; v.style.color = "var(--ink)";
+  d.append(b, v); tip.appendChild(d);
+}
+function mapHit(ev) {
+  if (!mapState || !mapState.sel.length) return null;
+  const rect = ev.currentTarget.getBoundingClientRect(), x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+  const i = mapState.delaunay.find(x, y), p = mapState.sel[i], q = mapState.xy[i];
+  return Math.hypot(q[0] - x, q[1] - y) > rScale(p.n) + 10 ? {x, y} : {p, x, y};
+}
+function fillMapTip(tip, p, pin) {
+  tip.replaceChildren();
+  const t = document.createElement("div"); t.className = "t"; t.textContent = `${p.lat}, ${p.lon}`; tip.appendChild(t);
+  tipRow(tip, "Samples", fmt(p.n) + (p.studies > 1 ? ` in ${p.studies} studies` : ""));
+  tipRow(tip, "Study", p.study + (p.studies > 1 ? " (most samples)" : ""));
+  tipRow(tip, "Sample type", p.stype);
+  tipRow(tip, "Metadata says", p.claim);
+  tipRow(tip, "Coordinate is in", p.found);
+  tipRow(tip, "Distance", p.dist);
+  if (p.diag) tipRow(tip, "Likely slip", DIAG_TEXT[p.diag.replace(/\(.*$/, "")] || p.diag);
+  if (p.sg) tipRow(tip, "Suggested position", `${p.sg[1]}, ${p.sg[2]} (${SG_TEXT[p.sg[0]]}` +
+                   (p.sg[3] >= 1 ? `, ±${fmt(Math.round(p.sg[3]))} km)` : ")"));
+  if (p.sg) {
+    const why = [];
+    if (p.sg[7] && p.sg[7].startsWith("claim")) why.push(`the sample's stated location (${p.sg[8]})`);
+    if (p.sg[7] && p.sg[7].endsWith("place")) why.push(`a named place (${p.sg[5]}${+p.sg[6] > 0 ? `, ${fmt(Math.round(+p.sg[6]))} km` : ""})`);
+    tipRow(tip, "Backed by", why.join(" and "));
+    if (p.sg[7] === "claim" && SUPPORT_TEXT[p.sg[4]]) tipRow(tip, "Study description", SUPPORT_TEXT[p.sg[4]](p.sg[5], +p.sg[6]));
+  }
+  else if (p.ps) tipRow(tip, "Suggested position", `none: the recorded point is in ${p.ps}, which the metadata names`);
+  else tipRow(tip, "Suggested position", "none: no mechanical fix");
+  const h = document.createElement("div"); h.className = "hint";
+  h.textContent = pin ? "Pinned · click elsewhere or press Esc to close" : "Click to pin";
+  tip.appendChild(h);
+}
+$("map").addEventListener("pointermove", ev => {
+  if (pinned) return;
+  const hit = mapHit(ev), tip = $("tip");
+  if (!hit || !hit.p) { tip.hidden = true; return; }
+  fillMapTip(tip, hit.p, false); placeTip(tip, $("mapwrap"), hit.x, hit.y);
+});
+$("map").addEventListener("click", ev => {
+  const hit = mapHit(ev), tip = $("tip");
+  unpin();
+  if (!hit || !hit.p) return;
+  fillMapTip(tip, hit.p, true); placeTip(tip, $("mapwrap"), hit.x, hit.y);
+  tip.classList.add("pinned"); pinned = {tip, canvas: $("map")};
+});
+$("map").addEventListener("pointerleave", () => { if (!pinned) $("tip").hidden = true; });
+
+// ---- diagnosis + pairs ---------------------------------------------------------------
+setText("fix-n", fmt(D.n_fix));
+setText("basis-text", `Of the ${fmt(D.n_fix)} listed corrections, ${fmt(D.basis["claim+place"] || 0)} are backed by both the sample's claim and a named place, ${fmt(D.basis["claim"] || 0)} by the claim alone and ${fmt(D.basis["place"] || 0)} by a named place alone; ${fmt(D.n_fix_unbacked)} slips that no text backs, or that a named place contradicts, are not listed.`);
+setText("fix-tas", `${fmt(D.n_fix_tas)} of the ${fmt(D.n_tas)} land-based samples placed at sea`);
+const dtb = document.querySelector("#diagtable tbody");
+const diag = Object.entries(D.diagnosis).sort((a, b) => b[1] - a[1]);
+const dmax = diag[0][1];
+diag.forEach(([k, n]) => {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td></td><td class="r"></td><td class="barcell"><div class="hbar"></div></td>`;
+  tr.children[0].textContent = DIAG_TEXT[k] || k; tr.children[1].textContent = fmt(n);
+  tr.querySelector(".hbar").style.width = (100 * n / dmax) + "%";
+  dtb.appendChild(tr);
+});
+const sgtb = document.querySelector("#sgtable tbody");
+[["transform", "Swap / sign fix"], ["autofill", "Start of the autofill run"],
+ ["none", "None (no mechanical fix)"]].forEach(([k, label]) => {
+  const v = D.suggest[k]; if (!v) return;
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td></td><td class="r"></td><td class="r"></td>`;
+  tr.children[0].textContent = label; tr.children[1].textContent = fmt(v[0]);
+  tr.children[2].textContent = v[1] == null ? "" : v[1] < 1 ? "< 1 km" : `± ${fmt(Math.round(v[1]))} km`;
+  sgtb.appendChild(tr);
+});
+const sptb = document.querySelector("#supporttable tbody");
+[["supported", "The fix lands in one"], ["original_fits", "Only the recorded point is in one"],
+ ["no_match", "Neither point is in one"], ["unresolved", "Names could not be located"],
+ ["no_places", "None extracted"]].forEach(([k, label]) => {
+  const a = D.fix_support[`transform|${k}`] || 0, b = D.fix_support[`autofill|${k}`] || 0;
+  if (!a && !b) return;
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td></td><td class="r"></td><td class="r"></td>`;
+  tr.children[0].textContent = label; tr.children[1].textContent = fmt(a); tr.children[2].textContent = fmt(b);
+  sptb.appendChild(tr);
+});
+setText("support-note", `Samples with a mechanical fix. Named places are the names in the sample's location detail (after the colon, "Antarctica: Port-aux-Francais, Kerguelen Islands") and in its sampling_site field, and the places the study description says were sampled; a fix counts as backed when it lands within 25 km (or the rounding uncertainty) of one that the recorded point is not near; for marine samples, within 370 km of a named country or state. When only the recorded point is in a named place, the text argues against moving it and no position is suggested (${fmt(D.n_fix_withheld)} samples). A study place known only as a label point (a trench, a basin) counts within 100 km.`);
+
+// ---- case map ----------------------------------------------------------------------------
+const C = D.case, cpts = C.points.map(p => ({lat: p[0], lon: p[1], n: p[2], af: p[3], found: p[4]}));
+const base = cpts.find(p => !p.af && p.n === d3.max(cpts, q => q.n)) || cpts[0];
+const run = cpts.filter(p => p.af);
+const last = run[run.length - 1];
+setText("case-text", `Study ${C.study} has ${fmt(base.n)} samples at ${base.lat}, ${base.lon} (Davis, California), matching the metadata "${C.claim}". ` +
+  `${run.length} further coordinates then step +1° latitude and +1° longitude each, to ${last.lat}, ${last.lon} in ${last.found}. ` +
+  `Sample ${C.sample} is one of them: it still says "${C.claim}" but sits in Manitoba. These rows get both autofill and country_mismatch.`);
+let caseState = null;
+function drawCase() {
+  const cv = $("casemap"), w = cv.parentElement.clientWidth, h = Math.round(Math.min(w * 0.55, 420));
+  const ctx = setupCanvas(cv, w, h);
+  const feat = {type: "MultiPoint", coordinates: cpts.map(p => [p.lon, p.lat])};
+  const proj = d3.geoConicEqualArea().parallels([35, 65]).rotate([105, 0]).fitExtent([[40, 30], [w - 40, h - 30]], feat);
+  const path = d3.geoPath(proj, ctx);
+  ctx.fillStyle = css("--sea"); ctx.fillRect(0, 0, w, h);
+  ctx.beginPath(); path(d3.geoGraticule().step([5, 5])()); ctx.strokeStyle = css("--rule"); ctx.lineWidth = 0.4; ctx.stroke();
+  drawLand(ctx, path);
+  const xy = cpts.map(p => proj([p.lon, p.lat]));
+  ctx.beginPath(); xy.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]));
+  ctx.strokeStyle = css("--ink-3"); ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.stroke(); ctx.setLineDash([]);
+  cpts.forEach((p, i) => {
+    ctx.beginPath(); ctx.arc(xy[i][0], xy[i][1], p.af ? 4 : 8, 0, 2 * Math.PI);
+    ctx.fillStyle = p.af ? css("--flag") : css("--good"); ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = css("--sea"); ctx.stroke();
+  });
+  ctx.font = `500 12px ${css("--font-mono")}`; ctx.fillStyle = css("--ink");
+  const bq = xy[cpts.indexOf(base)]; ctx.fillText(`Davis · ${fmt(base.n)} samples`, bq[0] + 12, bq[1] + 4);
+  const lq = xy[cpts.indexOf(last)]; ctx.textAlign = "right"; ctx.fillText(`${last.lat}, ${last.lon}`, lq[0] - 10, lq[1] - 8); ctx.textAlign = "left";
+  caseState = {xy, delaunay: d3.Delaunay.from(xy)};
+}
+function caseTip(ev, pin) {
+  if (!caseState) return;
+  const rect = ev.currentTarget.getBoundingClientRect(), x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+  const i = caseState.delaunay.find(x, y), p = cpts[i], q = caseState.xy[i], tip = $("casetip");
+  if (Math.hypot(q[0] - x, q[1] - y) > 14) { if (!pin) tip.hidden = true; return; }
+  tip.replaceChildren();
+  const t = document.createElement("div"); t.className = "t"; t.textContent = `${p.lat}, ${p.lon}`; tip.appendChild(t);
+  tipRow(tip, "Samples", fmt(p.n)); tipRow(tip, "Coordinate is in", p.found);
+  tipRow(tip, "Status", p.af ? `autofill step ${i} of ${run.length}` : "start of run, kept");
+  const hn = document.createElement("div"); hn.className = "hint";
+  hn.textContent = pin ? "Pinned · click elsewhere or press Esc to close" : "Click to pin"; tip.appendChild(hn);
+  placeTip(tip, ev.currentTarget.parentElement, x, y);
+  if (pin) { tip.classList.add("pinned"); pinned = {tip, canvas: $("casemap")}; }
+}
+$("casemap").addEventListener("pointermove", ev => { if (!pinned) caseTip(ev, false); });
+$("casemap").addEventListener("click", ev => { unpin(); caseTip(ev, true); });
+$("casemap").addEventListener("pointerleave", () => { if (!pinned) $("casetip").hidden = true; });
+
+// ---- studies table ------------------------------------------------------------------------------
+const S = D.studies.map(r => [...r, 100 * r[2] / r[1]]);
+let sortK = 2;
+function drawStudies() {
+  const tb = document.querySelector("#studytable tbody"); tb.replaceChildren();
+  S.slice().sort((a, b) => b[sortK] - a[sortK]).forEach(r => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td class="mono"></td><td class="r"></td><td class="r"></td><td class="r"></td><td></td><td></td><td></td><td></td><td class="small"></td>`;
+    const c = tr.children;
+    c[0].textContent = r[0]; c[1].textContent = fmt(r[1]); c[2].textContent = fmt(r[2]); c[3].textContent = pct(r[9]);
+    const f = document.createElement("span"); f.className = "pill"; f.textContent = r[3]; c[4].appendChild(f);
+    c[5].textContent = r[4] ? (DIAG_TEXT[r[4]] || r[4]) : "";
+    c[6].textContent = r[6]; c[7].textContent = r[7]; c[8].textContent = r[8];
+    tb.appendChild(tr);
+  });
+}
+document.querySelectorAll("#studytable th.sort").forEach(th => {
+  th.tabIndex = 0;
+  const go = () => { sortK = +th.dataset.k; document.querySelectorAll("#studytable th.sort").forEach(x => x.removeAttribute("aria-sort")); th.setAttribute("aria-sort", "descending"); drawStudies(); };
+  th.addEventListener("click", go); th.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+});
+drawStudies();
+
+// ---- hotspots -----------------------------------------------------------------------------------
+const htb = document.querySelector("#hottable tbody");
+D.hotspots.forEach(([la, lo, cl, st, n, bad, found, top]) => {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td class="mono"></td><td></td><td class="r"></td><td class="r"></td><td class="r"></td><td class="r"></td><td class="small"></td>`;
+  const c = tr.children;
+  c[0].textContent = `${la}, ${lo}`; c[1].textContent = found; c[2].textContent = cl; c[3].textContent = fmt(st);
+  c[4].textContent = fmt(n); c[5].textContent = fmt(bad); c[6].textContent = top.join(", ") + (cl > top.length ? ", …" : "");
+  htb.appendChild(tr);
+});
+
+// ---- coast histogram (small multiples) -------------------------------------------------------------
+const E = D.coast_edges;
+const binLabel = i => { const a = E[i], b = E[i + 1]; return `${a} to ${b} km`; };
+function drawHist() {
+  const box = $("hist"); box.replaceChildren();
+  const w = box.clientWidth, rowH = 92, top = 6, left = 96, right = 10, bottom = 34;
+  const types = [["marine", "Marine"], ["terrestrial", "Land-based"], ["unknown", "Unclassified"]];
+  const h = top + types.length * rowH + bottom;
+  const svg = d3.select(box).append("svg").attr("viewBox", `0 0 ${w} ${h}`).attr("width", "100%").attr("role", "img")
+    .attr("aria-label", "Distribution of coast distance by sample type");
+  const nb = E.length - 1;
+  const x = d3.scaleBand().domain(d3.range(nb)).range([left, w - right]).paddingInner(0.08);
+  const zeroX = x(8) - x.step() * x.paddingInner() / 2;
+  const tip = d3.select(box).style("position", "relative").append("div").attr("class", "tip").attr("hidden", true);
+  types.forEach(([k, label], ti) => {
+    const counts = D.coast_hist[k], tot = D.coast_type_n[k], share = counts.map(c => 100 * c / tot);
+    const y0 = top + ti * rowH, y = d3.scaleLinear().domain([0, d3.max(share)]).range([y0 + rowH - 14, y0 + 8]);
+    svg.append("text").attr("x", 0).attr("y", y0 + rowH / 2).attr("fill", css("--ink")).attr("font-size", 13).attr("font-weight", 600).text(label);
+    svg.append("text").attr("x", 0).attr("y", y0 + rowH / 2 + 16).attr("fill", css("--ink-3")).attr("font-size", 11).attr("font-family", css("--font-mono"))
+      .text(`${fmt(tot)} · median ${D.coast_median[k]} km`);
+    svg.append("line").attr("x1", left).attr("x2", w - right).attr("y1", y0 + rowH - 14).attr("y2", y0 + rowH - 14).attr("stroke", css("--rule"));
+    svg.append("g").selectAll("path").data(share).join("path")
+      .attr("d", (v, i) => { const bx = x(i), bw = x.bandwidth(), by = y(v), base = y0 + rowH - 14, r = Math.min(4, bw / 2, base - by);
+        return `M${bx},${base}V${by + r}Q${bx},${by} ${bx + r},${by}H${bx + bw - r}Q${bx + bw},${by} ${bx + bw},${by + r}V${base}Z`; })
+      .attr("fill", (v, i) => i < 8 ? css("--land-edge") : css("--accent"))
+      .on("pointermove", (ev, v) => { const i = share.indexOf(v); const [mx, my] = d3.pointer(ev, box);
+        tip.attr("hidden", null).html("");
+        tip.append("div").attr("class", "t").text(binLabel(i));
+        tip.append("div").attr("class", "row").text(`${label}: ${fmt(counts[i])} samples (${pct(v)})`);
+        placeTip(tip.node(), box, mx, my); })
+      .on("pointerleave", () => tip.attr("hidden", true));
+  });
+  svg.append("line").attr("x1", zeroX).attr("x2", zeroX).attr("y1", top).attr("y2", h - bottom + 4).attr("stroke", css("--ink-3")).attr("stroke-dasharray", "3 3");
+  const ax = svg.append("g").attr("class", "axis");
+  const step = w < 560 ? 4 : 2;
+  E.forEach((e, i) => { if (i % step) return; const px = i < nb ? x(i) - x.step() * x.paddingInner() / 2 : w - right;
+    ax.append("text").attr("x", px).attr("y", h - bottom + 18).attr("text-anchor", "middle").text(e); });
+  ax.append("text").attr("x", zeroX - 8).attr("y", h - 2).attr("text-anchor", "end").text("← on land (km)");
+  ax.append("text").attr("x", zeroX + 8).attr("y", h - 2).text("at sea (km) →");
+}
+setText("inland-text", `${fmt(D.marine_inland_25)} samples typed as marine (${fmt(D.marine_inland_25_studies)} studies) lie more than 25 km inland. ` +
+  `Most are "sediment metagenome", "freshwater sediment" and fish samples, which are often legitimately inland (lakes, aquaculture), so this is not used as a flag. A stricter marine definition would make it one.`);
+setText("m-remap", `${fmt(D.n_claims_remapped)} free-text claims the checker cannot place (site names such as "Yakushima" or "sandiego", misspellings such as "Vietman") were mapped by hand to a country or sea, affecting ${fmt(D.n_remapped)} samples. The claim as written is used whenever the checker can place it.`);
+setText("m-len", `Tolerances: a coordinate given in whole degrees can be up to 79 km from the true point (8 km with one decimal), so every distance limit widens to that rounding uncertainty. A country claim at sea passes within 370 km of the country. A "Southern Ocean" claim passes anywhere south of 40°S, and Atlantic, Indian or Pacific claims inside the IHO Southern Ocean count as the neighbouring ocean. Kattegat, Skagerrak and the Gulfs of Bothnia, Finland and Riga count as Baltic Sea. The IHO marginal seas of the Arctic (Norwegian, Barents, Greenland, Bering Sea and others) count as Arctic Ocean, and Baffin Bay, Davis Strait, the Labrador, Greenland and Norwegian Seas count as Atlantic Ocean. ${fmt(D.n_lenient)} samples pass only because of these allowances.`);
+setText("m-place", `Named places: the names in each sample's location detail (after the colon of geo_loc_name) and in its sampling_site field, and the places each study's description names as sampled were located (country, state and sea boundaries, Wikidata, OpenStreetMap). A country, sea or region mismatch is cleared when the recorded point lies in one of them and no swap or sign fix lands in another: ${fmt(D.n_place_rescue)} samples in ${fmt(D.n_place_rescue_studies)} studies (` +
+  D.place_rescue_top.slice(0, 4).map(([c, f, pl, n]) => `"${c}" in ${pl}: ${fmt(n)}`).join("; ") +
+  `). Continents and the claimed country itself do not count. The sample's own location detail can overrule its claim anywhere ("Antarctica: Port-aux-Francais, Kerguelen Islands" placed on Kerguelen), but only if the point fits every name in it that could be located with an outline ("Scotland:Glasgow" needs Glasgow); a name found only as a label point can support but not veto, since generic site names ("Western Shoals", "Blue Hole") also exist elsewhere. In the Sponge Microbiome Project (ERP020690) the country fields follow the contributor rather than the site ("Guam" for a sponge from Cala Montgó, Spain) while coordinates and sampling_site agree. A place from the study description clears a country or state claim only at sea, typically a cruise labelled with the nearest or home country; on land, a study that sampled several sites does not confirm a coordinate that contradicts the sample's own claim.`);
+setText("m-unpl", `${D.n_unplaceable_claims} claims (${fmt(D.n_unplaceable)} samples) were left unchecked because no single country fits: continents ("Sourth America"), "GAZ", border lakes, "Czechoslovakia", non-places.`);
+
+function redraw() { drawMap(); drawCase(); drawHist(); }
+redraw();
+let rt; new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(redraw, 120); }).observe(document.querySelector(".wrap"));
+const mq = window.matchMedia("(prefers-color-scheme: dark)"); mq.addEventListener("change", redraw);
+new MutationObserver(redraw).observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
+})();
+</script>

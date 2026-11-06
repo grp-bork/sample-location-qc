@@ -1,0 +1,17 @@
+# Hand-checked cases from the 2026-10 microbeatlas audit; run with scripts/check_expected.py.
+# flags: expected flags (comma-separated, empty = none, * = any); suggest: yes/no/* (a suggested position)
+sample	bogus	flags	suggest	note
+ERS1242657	true	country_mismatch	yes	ERP016416: French Polynesia with the latitude sign dropped; lat_sign fix backed by the claim
+ERS386534	true	sea_mismatch	yes	ERP004192: Southern Ocean with both signs flipped; fix backed by claim and study place (Amundsen Sea)
+ERS1063111	true	country_mismatch	yes	ERP014207: lat/lon swapped; fix backed by claim and study place
+ERS3363282	true	autofill	yes	ERP114733: spreadsheet drag; run start backed by claim and place
+ERS1490871	false			ERP020690: says Guam, coordinate in Spain, but sampling_site names the Spanish site; cleared by the sample's own text
+ERS1487179	true	country_mismatch	no	ERP020690: Taiwan claim, coordinate elsewhere, nothing backs a fix
+SRS6533764	false			SRP258368: "Antarctica: ... Port-aux-Francais" (Kerguelen); cleared by the sample's own place names
+SRS2900523	false			SRP131867: Canada Basin cruise; cleared by the named place at sea
+SRS1320511	false			SRP071106: gut metagenome of a marine host is not terrestrial (no terrestrial_at_sea)
+ERS1624294	false			ERP022237: same as SRP071106
+SRS2490784	false			SRP116777: Mariana Trench, label point within 100 km
+ERS1837176	true	region_mismatch	no	ERP024303: claims (USA:NY:Lansing, USA:MO:Columbus) scrambled across coordinates; open: how to mark the study
+ERS652740	true	country_mismatch,terrestrial_at_sea	no	ERP009429: placeholder coordinate at sea for Danish samples
+DRS055749	true	*	no	DRP003904: coordinate out of range
